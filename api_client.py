@@ -478,15 +478,18 @@ class APIClientFactory:
         Raises:
             ValueError: If the provider is not supported.
         """
+
+        
+        remaining_config = config.copy()
+        for key in ["api_key", "api_url", "model"]:
+            remaining_config.pop(key, None)
+
         if provider == "claude":
             return ClaudeAPIClient(
                 api_key=config["api_key"],
                 api_url=config["api_url"],
                 model=config["model"],
-                max_tokens=config.get("max_tokens", 4096),
-                temperature=config.get("temperature", 0.7),
-                timeout=config.get("timeout", 30),
-                **config
+                **remaining_config
             )
         
         elif provider == "openai":
@@ -494,20 +497,14 @@ class APIClientFactory:
                 api_key=config["api_key"],
                 api_url=config["api_url"],
                 model=config["model"],
-                max_tokens=config.get("max_tokens", 4096),
-                temperature=config.get("temperature", 0.7),
-                timeout=config.get("timeout", 30),
-                **config
+                **remaining_config
             )
         
         elif provider == "local":
             return LocalAPIClient(
                 api_url=config["api_url"],
                 model=config["model"],
-                max_tokens=config.get("max_tokens", 4096),
-                temperature=config.get("temperature", 0.7),
-                timeout=config.get("timeout", 30),
-                **config
+                **remaining_config
             )
         
         else:
