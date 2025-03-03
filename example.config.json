@@ -1,0 +1,67 @@
+{
+    "default_provider": "claude",
+    "providers": {
+      "gemini": {
+        "api_key": "",
+        "api_url": "",
+        "model": "gemini-2.0-flash",
+        "max_tokens": 4096,
+        "temperature": 0.7,
+        "timeout": 30,
+        "headers": {
+          "content-type": "application/json"
+        }
+      },
+      "claude": {
+        "api_key": "",
+        "api_url": "https://api.anthropic.com/v1/messages",
+        "model": "claude-3-7-sonnet-20250219",
+        "max_tokens": 100,
+        "temperature": 0.7,
+        "timeout": 30,
+        "headers": {
+          "anthropic-version": "2023-06-01",
+          "content-type": "application/json"
+        }
+      },
+      "openai": {
+        "api_key": "your_openai_api_key_here",
+        "api_url": "https://api.openai.com/v1/chat/completions",
+        "model": "gpt-4-turbo",
+        "max_tokens": 4096,
+        "temperature": 0.7,
+        "timeout": 30,
+        "headers": {
+          "content-type": "application/json"
+        }
+      },
+      "local": {
+        "api_key": "",
+        "api_url": "http://localhost:8000/v1/chat/completions",
+        "model": "local-model",
+        "max_tokens": 4096,
+        "temperature": 0.7,
+        "timeout": 30,
+        "headers": {
+          "content-type": "application/json"
+        }
+      }
+    },
+    "workspace": {
+      "default_path": "~/ai_workspace",
+      "allowed_paths": ["~/ai_workspace", "~/projects"]
+    },
+    "security": {
+      "audit_log_path": "~/.ai_agent/audit.jsonl",
+      "history_path": "~/.ai_agent/history.jsonl",
+      "require_confirmation_for_writes": true,
+      "max_execution_time": 10,
+      "allow_network_access": false
+    },
+    "logging": {
+      "level": "INFO",
+      "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+      "log_to_file": true,
+      "log_file": "~/.ai_agent/app.log"
+    }
+  }
