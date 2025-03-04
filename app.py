@@ -14,6 +14,8 @@ from typing import Dict, Any, Optional
 
 from config_manager import ConfigManager
 from api_interface import APIInterface
+from file_operations import FileOperations
+from commands import Commands
 
 def setup_logging(config: Dict[str, Any]) -> None:
     """
@@ -107,10 +109,8 @@ def create_default_config() -> None:
         }
     }
     
-    # Create directory if it doesn't exist
     default_config_path.parent.mkdir(parents=True, exist_ok=True)
     
-    # Write the default configuration
     with open(default_config_path, 'w') as f:
         json.dump(default_config, f, indent=2)
     
@@ -144,6 +144,44 @@ def main() -> None:
         action="store_true",
         help="Initialize the default configuration file"
     )
+
+    file_ops_group = parser.add_argument_group("File Operations")
+    
+    file_ops_group.add_argument(
+        "--generate-tests",
+        metavar="FILE",
+        help="Generate tests for a file"
+    )
+    
+    file_ops_group.add_argument(
+        "--evaluate-syntax",
+        metavar="FILE",
+        help="Evaluate a file for syntax mistakes"
+    )
+    
+    file_ops_group.add_argument(
+        "--generate-docs",
+        metavar="DIRECTORY",
+        help="Generate documentation for files in a directory"
+    )
+    
+    file_ops_group.add_argument(
+        "--batch-process",
+        metavar="DIRECTORY",
+        help="Process all files in a directory"
+    )
+    
+    file_ops_group.add_argument(
+        "--operation",
+        choices=["tests", "syntax", "docs"],
+        help="Operation to perform when batch processing"
+    )
+    
+    file_ops_group.add_argument(
+        "--pattern",
+        default="*.py",
+        help="File pattern for batch operations (default: *.py)"
+    )
     
     args = parser.parse_args()
     
@@ -166,14 +204,43 @@ def main() -> None:
         
         # Create API interface
         api = APIInterface(args.config, args.provider)
+        file_ops = FileOperations(config_manager)
+        commands = Commands(api, file_ops)
         
         logger.info("AI Agent Application initialized successfully")
+
+        if args.generate_tests:
+            result = commands.generate_tests(args.generate_tests)
+            print(result)
+            return
+            
+        if args.evaluate_syntax:
+            result = commands.evaluate_syntax(args.evaluate_syntax)
+            print(result)
+            return
+            
+        if args.generate_docs:
+            result = commands.generate_documentation(args.generate_docs, args.pattern)
+            print(result)
+            return
+            
+        if args.batch_process:
+            if not args.operation:
+                parser.error("--operation is required with --batch-process")
+            result = commands.batch_process_directory(args.batch_process, args.operation, args.pattern)
+            print(result)
+            return
         
         # TODO: Add interactive CLI or other interfaces
         print("AI Agent Application is ready.")
         print(f"Using provider: {api.provider}")
+        print("\nAvailable commands:")
+        print("1. generate-tests <file> - Generate tests for a file")
+        print("2. evaluate-syntax <file> - Evaluate a file for syntax mistakes")
+        print("3. generate-docs <directory> - Generate documentation for files in a directory")
+        print("4. batch-process <directory> <operation> [pattern] - Process multiple files")
+        print("5. exit - Exit the application")
         
-        # Simple interactive mode for testing
         print("\nEnter messages (Ctrl+C or 'exit' to quit):")
         while True:
             try:
@@ -181,8 +248,44 @@ def main() -> None:
                 if user_input.lower() in ["exit", "quit"]:
                     break
                 
-                response = api.send_message(user_input)
-                print(f"\n{response}\n")
+                parts = user_input.split()
+                if not parts:
+                    continue
+                
+                command = parts[0].lower()
+                
+                if command == "generate-tests" and len(parts) >= 2:
+                    result = commands.generate_tests(parts[1])
+                    print(result)
+                    
+                elif command == "evaluate-syntax" and len(parts) >= 2:
+                    result = commands.evaluate_syntax(parts[1])
+                    print(result)
+                    
+                elif command == "generate-docs" and len(parts) >= 2:
+                    pattern = parts[2] if len(parts) >= 3 else "*.py"
+                    result = commands.generate_documentation(parts[1], pattern)
+                    print(result)
+                    
+                elif command == "batch-process" and len(parts) >= 3:
+                    directory = parts[1]
+                    operation = parts[2]
+                    pattern = parts[3] if len(parts) >= 4 else "*.py"
+                    
+                    if operation not in ["tests", "syntax", "docs"]:
+                        print(f"Invalid operation: {operation}")
+                        continue
+                    
+                    result = commands.batch_process_directory(directory, operation, pattern)
+                    print(result)
+                    
+                else:
+                    print("Invalid command or missing arguments.")
+                    print("Usage:")
+                    print("  generate-tests <file>")
+                    print("  evaluate-syntax <file>")
+                    print("  generate-docs <directory> [pattern]")
+                    print("  batch-process <directory> <operation> [pattern]")
             
             except KeyboardInterrupt:
                 print("\nExiting...")
@@ -193,7 +296,6 @@ def main() -> None:
                 print(f"Error: {e}")
     
     except Exception as e:
-        # If we can't even load the configuration, use basic logging
         if args.debug:
             logging.basicConfig(level=logging.DEBUG)
         else:
