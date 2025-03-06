@@ -45,7 +45,7 @@ class Commands:
 
         try:
             file_content = self.file_ops.safe_read_file(file_path)
-            file_name = Path(file_name).name
+            file_name = Path(file_path).name
 
             # Boilerplate for now, will be replaced with scaffold at some point
             # Honestly scaffold might not even be necessary for these operations?

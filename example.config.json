@@ -16,7 +16,7 @@
         "api_key": "",
         "api_url": "https://api.anthropic.com/v1/messages",
         "model": "claude-3-7-sonnet-20250219",
-        "max_tokens": 100,
+        "max_tokens": 4096,
         "temperature": 0.7,
         "timeout": 30,
         "headers": {
@@ -48,8 +48,8 @@
       }
     },
     "workspace": {
-      "default_path": "~/ai_workspace",
-      "allowed_paths": ["~/ai_workspace", "~/projects"]
+      "default_path": ".",
+      "allowed_paths": [".", "./tests"]
     },
     "security": {
       "audit_log_path": "~/.ai_agent/audit.jsonl",

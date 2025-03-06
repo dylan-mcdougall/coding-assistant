@@ -259,6 +259,23 @@ class ClaudeAPIClient(BaseAPIClient):
             "content-type": "application/json"
         })
 
+        self.system_content = None
+
+    def add_message(self, role: str, content: str) -> None:
+        """
+        Add a message to the conversation history.
+        Separate handling for system messages.
+
+        Args:
+            role: The role of the message sender.
+            content: The content of the message.
+        """
+
+        if role == 'system':
+            self.system_content = content
+        else:
+            super().add_message(role, content)
+
     def format_prompt(self, messages: List[Message]) -> Dict[str, Any]:
         """
         Format the prompt for the Claude API.
@@ -272,12 +289,17 @@ class ClaudeAPIClient(BaseAPIClient):
 
         formatted_messages = [msg.to_dict() for msg in messages]
 
-        return {
+        payload = {
             "model": self.model,
             "messages": formatted_messages,
             "max_tokens": self.max_tokens,
             "temperature": self.temperature
         }
+
+        if self.system_content:
+            payload["system"] = self.system_content
+        
+        return payload
     
     def parse_response(self, response: Dict[str, Any]) -> str:
         """
@@ -297,6 +319,13 @@ class ClaudeAPIClient(BaseAPIClient):
             logger.error(f"Error parsing Claude API response: {e}")
             logger.debug(f"Response: {response}")
             raise Exception(f"Invalid response format from Claude API: {e}")
+        
+    def clear_conversation(self) -> None:
+        """
+        Clear the conversation history and system prompt.
+        """
+        super().clear_conversation()
+        self.system_content = None
     
     def _update_rate_limit_info(self, headers: Dict[str, str]) -> None:
         """
