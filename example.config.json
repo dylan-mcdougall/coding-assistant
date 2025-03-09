@@ -1,9 +1,9 @@
 {
-    "default_provider": "claude",
+    "default_provider": "gemini",
     "providers": {
       "gemini": {
         "api_key": "",
-        "api_url": "",
+        "api_url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
         "model": "gemini-2.0-flash",
         "max_tokens": 4096,
         "temperature": 0.7,

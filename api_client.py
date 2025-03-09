@@ -426,6 +426,125 @@ class OpenAIAPIClient(BaseAPIClient):
         except (ValueError, TypeError) as e:
             logger.warning(f"Error parsing rate limit headers: {e}")
 
+
+class GeminiAPIClient(BaseAPIClient):
+    """
+    API client for Google's Gemini API.
+    """
+
+    def __init__(self, api_key: str, api_url: str, model: str, **kwargs):
+        """
+        Initialize the Gemini API client.
+
+        Args:
+            api_key: The API key for authentication.
+            api_url: The URL of the API endpoint.
+            model: The model to use.
+            **kwargs: Additional parameters.
+        """
+
+        super().__init__(api_key, api_url, model, **kwargs)
+
+        self.headers.update({
+            "x-goog-api-key": self.api_key,
+            "content-type": "application/json"
+        })
+
+        self.system_content = None
+
+    def add_message(self, role: str, content: str) -> None:
+        """
+        Add a message to the conversation history.
+        Separate handling for system messages in Gemini.
+
+        Args:
+            role: The role of the message sender.
+            content: The content of the message.
+        """
+
+        if role == 'system':
+            self.system_content = content
+        else:
+            super().add_message(role, content)
+
+    def format_prompt(self, messages: List[Message]) -> Dict[str, Any]:
+        """
+        Format the prompt for the Gemini API.
+
+        Args:
+            messages: The list of messages to format.
+
+        Returns:
+            The formatted prompt.
+        """
+
+        formatted_contents = []
+
+        if self.system_content:
+            formatted_contents.append({
+                "role": "system",
+                "parts": [{"text": self.system_content}]
+            })
+
+        for msg in messages:
+            formatted_contents.append({
+                "role": "user" if msg.role == "user" else "model",
+                "parts": [{"text": msg.content}]
+            })
+        
+        payload = {
+            "contents": formatted_contents,
+            "generationConfig": {
+                "temperature": self.temperature,
+                "maxOutputTokens": self.max_tokens,
+                "topP": 0.95,
+                "topK": 40
+            },
+            "safetySettings": [
+                {
+                    "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+                    "threshold": "BLOCK_NONE"
+                }
+            ]
+        }
+
+        return payload
+    
+    def parse_response(self, response: Dict[str, Any]) -> str:
+        """
+        Parse the Gemini API response.
+
+        Args:
+            response: The API response.
+
+        Returns:
+            The response content.
+        """
+        
+        try:
+            return response["candidates"][0]["content"]["parts"][0]["text"]
+        except (KeyError, IndexError) as e:
+            logger.error(f"Error parsing Gemini API response: {e}")
+            logger.debug(f"Response: {response}")
+            raise Exception(f"Invalid response format from Gemini API: {e}")
+
+    def _update_rate_limit_info(self, headers: Dict[str, str]) -> None:
+        """
+        Update rate limit information from Gemini API response headers.
+
+        Args:
+            headers: The response headers.
+        """
+
+        try:
+            if "quota-remaining" in headers:
+                self._rate_limit_remaining = int(headers["quota-remaining"])
+            if "quota-reset" in headers:
+                self._rate_limit_reset = time.time() + int(headers["quota-reset"])
+        except (ValueError, TypeError) as e:
+            logger.warning(f"Error parsing rate limit headers: {e}")
+    
+
 class LocalAPIClient(BaseAPIClient):
     """
     API client for local models with OpenAI-compatible API.
@@ -523,6 +642,14 @@ class APIClientFactory:
         
         elif provider == "openai":
             return OpenAIAPIClient(
+                api_key=config["api_key"],
+                api_url=config["api_url"],
+                model=config["model"],
+                **remaining_config
+            )
+        
+        elif provider == "gemini":
+            return GeminiAPIClient(
                 api_key=config["api_key"],
                 api_url=config["api_url"],
                 model=config["model"],
